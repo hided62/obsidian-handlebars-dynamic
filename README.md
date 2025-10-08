@@ -35,14 +35,13 @@ The code block below will be changed
 
 ```hb
 tpl: test1
-data:
-  title: Main Title
-  t1: For example
-  t2: "**This** is also possible!"
-  alist:
-    - One
-    - Two
-    - Three
+title: Main Title
+t1: For example
+t2: "**This** is also possible!"
+alist:
+  - One
+  - Two
+  - Three
 ```
 
 ````
