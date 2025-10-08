@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-handlebars-dynamic",
+	"name": "Handlebars Dynamic Templating",
+	"version": "1.0.0",
+	"minAppVersion": "1.9.0",
+	"description": "Handlebars dynamic templating for Obsidian. Using hb blocks in your markdown files.",
+	"author": "Hide_D",
+	"authorUrl": "https://github.com/hided62/obsidian-handlebars-dynamic",
+	"isDesktopOnly": false
+}
