@@ -121,7 +121,6 @@ export default class ObsidianHandlebars extends Plugin {
 			name: i18n('rebuildTemplate'),
 			callback: async () => {
 				for (const [key, value] of this.watcher.entries()) {
-					console.log('rebuild', key);
 					await this.onTplChanged(key, value, true);
 				}
 
@@ -192,8 +191,6 @@ export default class ObsidianHandlebars extends Plugin {
 		if (rawContent == item.rawContent && !force) {
 			return;
 		}
-
-		console.log('onTplChanged', tplPath);
 
 		const { content, frontmatter } = parseHBFrontmatter(rawContent);
 		item.content = content;
