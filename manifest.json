@@ -1,7 +1,7 @@
 {
 	"id": "handlebars-dynamic",
 	"name": "Handlebars Dynamic Templating",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"minAppVersion": "1.9.0",
 	"description": "Handlebars dynamic templating. Using hb blocks in your markdown files.",
 	"author": "Hide_D",
