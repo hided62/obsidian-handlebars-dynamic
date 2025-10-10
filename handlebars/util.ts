@@ -80,3 +80,7 @@ export function parseHBFrontmatter(text: string): {frontmatter: tplFrontmatter, 
         content: unfenced,
     }
 }
+
+export function failureCalloutBox(title: string, rawError: string = ''): string {
+    return `> [!failure] ${title}\n> ${rawError.replace(/\n/g, '\n> ')}`;
+}

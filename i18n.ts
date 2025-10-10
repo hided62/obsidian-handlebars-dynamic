@@ -27,6 +27,7 @@ const langEn = {
     invalidImportParamsType: 'importParams is invalid type',
     importParamsResultIsNotObject: 'importParams result is not a object',
     importParamsFileNotFound: 'importParams file not found',
+    invalidImportParamsValue: 'importParams value is invalid',
 
     hbEnv: 'Handlebars Environment',
     hbEnvDesc: 'JSON Environment variables for handlebars',
@@ -62,6 +63,7 @@ const langKo = {
     invalidImportParamsType: 'importParams가 올바른 형식이 아닙니다.',
     importParamsResultIsNotObject: 'importParams 결과가 객체가 아닙니다.',
     importParamsFileNotFound: 'importParams 파일을 찾을 수 없습니다.',
+    invalidImportParamsValue: 'importParams 값이 올바르지 않습니다.',
 
     hbEnv: '핸들바 환경변수',
     hbEnvDesc: 'JSON 타입으로 지정된 핸들바 환경변수',

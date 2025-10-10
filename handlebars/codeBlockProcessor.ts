@@ -2,7 +2,7 @@ import { type MarkdownPostProcessorContext, TFile, parseYaml, MarkdownRenderer }
 import ObsidianHandlebars, { hbIDKey, type WatcherItem } from 'main';
 import { quoteattr } from '../util';
 import { getHandlebars } from './instance';
-import { parseHBFrontmatter } from './util';
+import { failureCalloutBox, parseHBFrontmatter } from './util';
 import { importParams } from './importParams';
 import { i18n } from 'i18n';
 
@@ -18,7 +18,7 @@ export type TemplateParams = {
 type TemplateOption = {
     noExportContext?: boolean;
     useFrontmatterParams?: boolean;
-    showSource?: boolean|number;
+    showSource?: boolean | number;
 }
 
 export type tplFrontmatter = {
@@ -97,7 +97,7 @@ export async function codeBlockProcessor(
     catch (_e: unknown) {
         const e = _e as Error;
         console.error('YAML parse error', e);
-        el.innerHTML = `<pre style="color: red;">${i18n('yamlParseError')}: \n${quoteattr(e.message)}</pre>`;
+        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('yamlParseError'), quoteattr(e.message)), el, ctx.sourcePath, this);
         return;
     }
 
@@ -106,7 +106,7 @@ export async function codeBlockProcessor(
     };
 
     if (!params.tpl) {
-        el.innerHTML = `<pre>${i18n('noTplValue')}</pre>`;
+        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('noTplValue')), el, ctx.sourcePath, this);
         return;
     }
 
@@ -115,12 +115,12 @@ export async function codeBlockProcessor(
 
     if (!tplFile) {
         console.error('Template file not found', params.tpl);
-        el.innerHTML = `<pre>${i18n('noTplExists')}: ${quoteattr(params.tpl)}\n${source}</pre>`;
+        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('noTplExists'), quoteattr(params.tpl)), el, ctx.sourcePath, this);
         return;
     }
 
     if (!(tplFile instanceof TFile)) {
-        el.innerHTML = `<pre>${i18n('invalidTplFileType')}: ${quoteattr(params.tpl)}\n${source}</pre>`;
+        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidTplFileType'), quoteattr(params.tpl)), el, ctx.sourcePath, this);
         return;
     }
 
@@ -140,9 +140,9 @@ export async function codeBlockProcessor(
         this.docCache.set(ctx.sourcePath, docCache);
     }
 
-    const rawContent = await (async ()=> {
+    const rawContent = await (async () => {
         const cachedResult = docCache!.tplCache.get(tplFile.path);
-        if(cachedResult){
+        if (cachedResult) {
             return cachedResult;
         }
         const waiter = this.app.vault.cachedRead(tplFile);
@@ -167,16 +167,16 @@ export async function codeBlockProcessor(
         catch (e) {
             console.error('Import params error', e);
             if (e instanceof Error) {
-                el.innerHTML = `<pre style="color: red;">${quoteattr(e.message)}</pre>`;
+                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(e.message)), el, ctx.sourcePath, this);
             }
             else {
-                el.innerHTML = `<pre style="color: red;">${quoteattr(String(e))}</pre>`;
+                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(String(e))), el, ctx.sourcePath, this);
             }
             return;
         }
     }
 
-    let errString: string | undefined;
+    let errString: [string, string] | [string] | undefined;
 
     let result: string = '';
 
@@ -187,7 +187,7 @@ export async function codeBlockProcessor(
 
 
     if (paramCnt < 1) {
-        errString = `<pre>${i18n('noData')}</pre>`;
+        errString = [i18n('noData')];
     }
     else {
         const mergedParams: Record<string, unknown> = {};
@@ -208,7 +208,7 @@ export async function codeBlockProcessor(
                 result = result.split('\n').map(text => prefix + text).join('\n');
             }
 
-            if(params.option?.showSource){
+            if (params.option?.showSource) {
                 const fenceLevel = typeof params.option.showSource === 'number' ? Math.max(4, params.option.showSource) : 5;
                 const fenceText = '`'.repeat(fenceLevel);
                 result = `${fenceText}\n${result}\n${fenceText}`;
@@ -217,7 +217,7 @@ export async function codeBlockProcessor(
         catch (_e: unknown) {
             const e = _e as Error;
             console.error('Handlebars compile error', e);
-            errString = `<pre>${i18n('templateCompileError')}:\n${quoteattr(e.message)}</pre>`;
+            errString = [i18n('templateCompileError'), quoteattr(e.message)];
         }
     }
 
@@ -230,7 +230,7 @@ export async function codeBlockProcessor(
 
     let renderP: Promise<void>;
     if (errString) {
-        el.innerHTML = errString;
+        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, this);
         renderP = Promise.resolve();
     }
     else {

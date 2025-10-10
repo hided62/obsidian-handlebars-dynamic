@@ -257,7 +257,7 @@ export default class ObsidianHandlebars extends Plugin {
 				markdown = `${fenceText}\n${markdown}\n${fenceText}`;
 			}
 
-			target.el.innerHTML = '';
+			target.el.setText('');
 			waiters.push(MarkdownRenderer.render(this.app, markdown, target.el, target.sourcePath, this));
 		}
 		await Promise.all(waiters);
