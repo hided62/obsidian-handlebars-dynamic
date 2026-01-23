@@ -94,7 +94,7 @@ export default class ObsidianHandlebars extends Plugin {
 
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
-			id: 'handlebars-add-template',
+			id: 'add-template',
 			name: i18n('addHandlebarsTemplate'),
 			editorCallback: (editor: Editor, view) => {
 				editor.replaceSelection(i18n('defaultTemplate'));
@@ -102,7 +102,7 @@ export default class ObsidianHandlebars extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'handlebars-ext-rebuild-page',
+			id: 'rebuild-page',
 			name: i18n('rebuildPage'),
 			callback: () => {
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -117,7 +117,7 @@ export default class ObsidianHandlebars extends Plugin {
 			}
 		});
 		this.addCommand({
-			id: 'handlebars-ext-rebuild-template',
+			id: 'rebuild-template',
 			name: i18n('rebuildTemplate'),
 			callback: async () => {
 				for (const [key, value] of this.watcher.entries()) {
