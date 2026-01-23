@@ -176,6 +176,7 @@ export default class ObsidianHandlebars extends Plugin {
 		const tplFile = this.app.vault.getAbstractFileByPath(tplPath);
 		if (!tplFile || !(tplFile instanceof TFile)) {
 			this.watcher.delete(tplPath);
+			this.removeTplTracking(tplPath);
 			return;
 		}
 
@@ -272,6 +273,13 @@ export default class ObsidianHandlebars extends Plugin {
 		await this.rerenderDependentTemplates(tplPath, visitedTpls);
 	}
 
+	removeTplTracking(tplPath: string) {
+		this.clearTplDependencies(tplPath);
+		this.clearTplDependents(tplPath);
+		this.tplDeps.delete(tplPath);
+		this.tplDependents.delete(tplPath);
+	}
+
 	addTplDependency(parentTplPath: string, childTplPath: string) {
 		if (!parentTplPath || !childTplPath) {
 			return;
@@ -309,6 +317,25 @@ export default class ObsidianHandlebars extends Plugin {
 			}
 		}
 		this.tplDeps.delete(parentTplPath);
+	}
+
+	clearTplDependents(tplPath: string) {
+		const parents = this.tplDependents.get(tplPath);
+		if (!parents) {
+			return;
+		}
+
+		for (const parentTplPath of parents) {
+			const deps = this.tplDeps.get(parentTplPath);
+			if (!deps) {
+				continue;
+			}
+			deps.delete(tplPath);
+			if (deps.size === 0) {
+				this.tplDeps.delete(parentTplPath);
+			}
+		}
+		this.tplDependents.delete(tplPath);
 	}
 
 	async rerenderDependentTemplates(tplPath: string, visited: Set<string>) {

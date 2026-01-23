@@ -68,6 +68,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 		tplWatcher.targets.delete(this.targetId);
 		if (tplWatcher.targets.size === 0) {
 			this.plugin.watcher.delete(this.tplPath);
+				this.plugin.removeTplTracking(this.tplPath);
 		}
 	}
 }
