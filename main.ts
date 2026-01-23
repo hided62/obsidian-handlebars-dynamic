@@ -1,4 +1,4 @@
-import { App, Editor, FileView, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, type PluginManifest, Notice, getLanguage, normalizePath } from 'obsidian';
+import { AbstractInputSuggest, App, Editor, FileView, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, TFolder, type PluginManifest, Notice, getLanguage, normalizePath } from 'obsidian';
 import { codeBlockProcessor, type TemplateParams } from 'handlebars/codeBlockProcessor';
 import { getHandlebars, resetHbEnv } from 'handlebars/instance';
 import { parseHBFrontmatter } from 'handlebars/util';
@@ -336,6 +336,33 @@ class SampleModal extends Modal {
 }
 */
 
+class FolderSuggest extends AbstractInputSuggest<TFolder> {
+	private inputEl: HTMLInputElement;
+
+	constructor(app: App, inputEl: HTMLInputElement) {
+		super(app, inputEl);
+		this.inputEl = inputEl;
+	}
+
+	override getSuggestions(query: string): TFolder[] {
+		const lower = query.toLowerCase();
+		return this.app.vault
+			.getAllLoadedFiles()
+			.filter((file): file is TFolder => file instanceof TFolder)
+			.filter((folder) => folder.path.toLowerCase().includes(lower));
+	}
+
+	override renderSuggestion(folder: TFolder, el: HTMLElement): void {
+		el.setText(folder.path);
+	}
+
+	override selectSuggestion(folder: TFolder): void {
+		this.inputEl.value = folder.path;
+		this.inputEl.dispatchEvent(new Event('input'));
+		this.close();
+	}
+}
+
 class SettingTab extends PluginSettingTab {
 	plugin: ObsidianHandlebars;
 
@@ -352,24 +379,30 @@ class SettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName(i18n('templateFolder'))
 			.setDesc(i18n('templateFolderDesc'))
-			.addText(text => text
-				.setPlaceholder(i18n('templateFolderPlaceholder'))
-				.setValue(this.plugin.settings.templateFolder)
-				.onChange(async (value) => {
-					this.plugin.settings.templateFolder = normalizePath(value);
-					await this.plugin.saveSettings();
-				}));
+			.addText(text => {
+				new FolderSuggest(this.app, text.inputEl);
+				return text
+					.setPlaceholder(i18n('templateFolderPlaceholder'))
+					.setValue(this.plugin.settings.templateFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.templateFolder = normalizePath(value);
+						await this.plugin.saveSettings();
+					});
+			});
 
 		new Setting(containerEl)
 			.setName(i18n('constantFolder'))
 			.setDesc(i18n('constantFolderDesc'))
-			.addText(text => text
-				.setPlaceholder(i18n('constantFolderPlaceholder'))
-				.setValue(this.plugin.settings.constantFolder)
-				.onChange(async (value) => {
-					this.plugin.settings.constantFolder = normalizePath(value);
-					await this.plugin.saveSettings();
-				}));
+			.addText(text => {
+				new FolderSuggest(this.app, text.inputEl);
+				return text
+					.setPlaceholder(i18n('constantFolderPlaceholder'))
+					.setValue(this.plugin.settings.constantFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.constantFolder = normalizePath(value);
+						await this.plugin.saveSettings();
+					});
+			});
 
 		new Setting(containerEl)
 			.setName(i18n('hbEnv'))
