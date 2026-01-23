@@ -1,9 +1,10 @@
-import { AbstractInputSuggest, App, Editor, FileView, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, TFolder, type PluginManifest, Notice, getLanguage, normalizePath } from 'obsidian';
+import { AbstractInputSuggest, App, Editor, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, TFolder, type PluginManifest, Notice, getLanguage, normalizePath } from 'obsidian';
 import { codeBlockProcessor, type TemplateParams } from 'handlebars/codeBlockProcessor';
 import { getHandlebars, resetHbEnv } from 'handlebars/instance';
 import { parseHBFrontmatter } from 'handlebars/util';
-import { importParams } from 'handlebars/importParams';
+import { importParams, type importParamType } from 'handlebars/importParams';
 import { i18n, langMap, setLanguage } from 'i18n';
+import type { HbRenderChild } from 'markdownRenderChild';
 
 const handlebars = getHandlebars();
 
@@ -30,6 +31,7 @@ export type WatcherTarget = {
 	tplData: TemplateParams;
 	el: HTMLElement;
 	sourcePath: string;
+	renderChild: HbRenderChild;
 }
 
 export const hbIDKey = 'data-hb-id';
@@ -154,44 +156,13 @@ export default class ObsidianHandlebars extends Plugin {
 			codeBlockProcessor.bind(this)
 		);
 
-		this.registerEvent(this.app.vault.on('modify', async (file) => {
-			if (!(file instanceof TFile)) {
-				return;
-			}
-
-			const path = file.path;
-			if (!path.endsWith('.md')) {
-				return;
-			}
-
-			const tplWatcher = this.watcher.get(path);
-			if (tplWatcher) {
-				this.onTplChanged(path, tplWatcher);
-			}
-		}));
-
-		this.registerEvent(this.app.vault.on('create', async (file) => {
-			if (!(file instanceof TFile)) {
-				return;
-			}
-
-			const path = file.path;
-			if (!path.endsWith('.md')) {
-				return;
-			}
-
-			const tplWatcher = this.watcher.get(path);
-			if (tplWatcher) {
-				this.onTplChanged(path, tplWatcher);
-			}
-		}));
-
-		this.registerInterval(window.setInterval(() => {
-			this.tryFlushWatcher();
-		}, 60000)); //1분마다 watcher 정리
 	}
 
-	async onTplChanged(tplPath: string, item: WatcherItem, force?: boolean) {
+	async onTplChanged(tplPath: string, item?: WatcherItem, force?: boolean, targetId?: string) {
+		const watcherItem = item ?? this.watcher.get(tplPath);
+		if (!watcherItem) {
+			return;
+		}
 
 		const tplFile = this.app.vault.getAbstractFileByPath(tplPath);
 		if (!tplFile || !(tplFile instanceof TFile)) {
@@ -200,19 +171,22 @@ export default class ObsidianHandlebars extends Plugin {
 		}
 
 		const rawContent = await this.app.vault.cachedRead(tplFile);
-		if (rawContent == item.rawContent && !force) {
-			return;
+		const shouldRefresh = rawContent !== watcherItem.rawContent || force;
+
+		if (shouldRefresh) {
+			const { content, frontmatter } = parseHBFrontmatter(rawContent);
+			watcherItem.content = content;
+			watcherItem.rawContent = rawContent;
+			watcherItem.frontmatter = frontmatter;
 		}
 
-		const { content, frontmatter } = parseHBFrontmatter(rawContent);
-		item.content = content;
-		item.rawContent = rawContent;
-		item.frontmatter = frontmatter;
+		const content = watcherItem.content;
+		const frontmatter = watcherItem.frontmatter;
 
-		if (frontmatter.importParams) {
+		if (frontmatter.importParams && shouldRefresh) {
 			try {
 				const cache = new Map<string, Promise<Record<string, unknown>>>();
-				const moreParams = await importParams(frontmatter.importParams, this, cache);
+				const moreParams = await importParams(frontmatter.importParams as importParamType, this, cache);
 				if (Array.isArray(moreParams) || typeof moreParams !== 'object') {
 					throw new Error(i18n('importParamsResultIsNotObject'));
 				}
@@ -236,10 +210,21 @@ export default class ObsidianHandlebars extends Plugin {
 		}
 
 		const waiters: Promise<void>[] = [];
-		for (const [key, target] of item.targets) {
+		const targetEntries = targetId
+			? (() => {
+				const target = watcherItem.targets.get(targetId);
+				return target ? [[targetId, target]] as Array<[string, WatcherTarget]> : [];
+			})()
+			: Array.from(watcherItem.targets.entries());
+
+		if (targetEntries.length === 0) {
+			return;
+		}
+
+		for (const [key, target] of targetEntries) {
 			const hbID = target.el.getAttr(hbIDKey);
 			if (hbID != key) {
-				item.targets.delete(key);
+				watcherItem.targets.delete(key);
 				return;
 			}
 
@@ -267,40 +252,9 @@ export default class ObsidianHandlebars extends Plugin {
 			}
 
 			target.el.setText('');
-			waiters.push(MarkdownRenderer.render(this.app, markdown, target.el, target.sourcePath, this));
+			waiters.push(MarkdownRenderer.render(this.app, markdown, target.el, target.sourcePath, target.renderChild));
 		}
 		await Promise.all(waiters);
-	}
-
-	tryFlushWatcher() {
-		const loadedFiles = new Set<string>();
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			const view = leaf.view;
-			if (!(view instanceof FileView)) {
-				return;
-			}
-			if (!(view.file instanceof TFile)) {
-				return;
-			}
-			const filePath = view.file.path;
-			if (!filePath.endsWith('.md')) {
-				return;
-			}
-
-			loadedFiles.add(filePath);
-		});
-
-		for (const [path, item] of this.watcher) {
-			for (const [key, target] of item.targets) {
-				if (loadedFiles.has(target.sourcePath)) {
-					continue;
-				}
-				item.targets.delete(key);
-			}
-			if (item.targets.size == 0) {
-				this.watcher.delete(path);
-			}
-		}
 	}
 
 	override onunload() {

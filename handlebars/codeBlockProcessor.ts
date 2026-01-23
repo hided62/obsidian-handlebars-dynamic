@@ -1,5 +1,6 @@
 import { type MarkdownPostProcessorContext, TFile, parseYaml, MarkdownRenderer } from 'obsidian';
 import ObsidianHandlebars, { hbIDKey, type WatcherItem } from 'main';
+import { HbRenderChild } from 'markdownRenderChild';
 import { quoteattr } from '../util';
 import { getHandlebars } from './instance';
 import { failureCalloutBox, parseHBFrontmatter } from './util';
@@ -89,6 +90,11 @@ export async function codeBlockProcessor(
     el: HTMLElement,
     ctx: MarkdownPostProcessorContext
 ): Promise<void> {
+    const renderError = (markdown: string) => {
+        const errorChild = new HbRenderChild(this, el, ctx.sourcePath);
+        ctx.addChild(errorChild);
+        return MarkdownRenderer.render(this.app, markdown, el, ctx.sourcePath, errorChild);
+    };
 
     let rawParams: TemplateParams;
     try {
@@ -97,8 +103,7 @@ export async function codeBlockProcessor(
     catch (_e: unknown) {
         const e = _e as Error;
         console.error('YAML parse error', e);
-        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('yamlParseError'), quoteattr(e.message)), el, ctx.sourcePath, this);
-        return;
+        return renderError(failureCalloutBox(i18n('yamlParseError'), quoteattr(e.message)));
     }
 
     const params = {
@@ -106,8 +111,7 @@ export async function codeBlockProcessor(
     };
 
     if (!params.tpl) {
-        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('noTplValue')), el, ctx.sourcePath, this);
-        return;
+        return renderError(failureCalloutBox(i18n('noTplValue')));
     }
 
     const tplPath = params.tpl;
@@ -115,14 +119,21 @@ export async function codeBlockProcessor(
 
     if (!tplFile) {
         console.error('Template file not found', params.tpl);
-        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('noTplExists'), quoteattr(params.tpl)), el, ctx.sourcePath, this);
-        return;
+        return renderError(failureCalloutBox(i18n('noTplExists'), quoteattr(params.tpl)));
     }
 
     if (!(tplFile instanceof TFile)) {
-        MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidTplFileType'), quoteattr(params.tpl)), el, ctx.sourcePath, this);
-        return;
+        return renderError(failureCalloutBox(i18n('invalidTplFileType'), quoteattr(params.tpl)));
     }
+
+    let randomString = el.getAttr(hbIDKey);
+    if (!randomString) {
+        randomString = Math.random().toString(36).substring(7);
+        el.setAttr(hbIDKey, randomString);
+    }
+
+    const renderChild = new HbRenderChild(this, el, ctx.sourcePath, tplFile.path, randomString);
+    ctx.addChild(renderChild);
 
     let docCache = this.docCache.get(ctx.sourcePath);
     if (docCache && docCache.until < Date.now()) {
@@ -167,10 +178,10 @@ export async function codeBlockProcessor(
         catch (e) {
             console.error('Import params error', e);
             if (e instanceof Error) {
-                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(e.message)), el, ctx.sourcePath, this);
+                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(e.message)), el, ctx.sourcePath, renderChild);
             }
             else {
-                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(String(e))), el, ctx.sourcePath, this);
+                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(String(e))), el, ctx.sourcePath, renderChild);
             }
             return;
         }
@@ -222,19 +233,13 @@ export async function codeBlockProcessor(
     }
 
 
-    let randomString = el.getAttr(hbIDKey);
-    if (!randomString) {
-        randomString = Math.random().toString(36).substring(7);
-        el.setAttr(hbIDKey, randomString);
-    }
-
     let renderP: Promise<void>;
     if (errString) {
-        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, this);
+        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, renderChild);
         renderP = Promise.resolve();
     }
     else {
-        renderP = MarkdownRenderer.render(this.app, result, el, ctx.sourcePath, this);
+        renderP = MarkdownRenderer.render(this.app, result, el, ctx.sourcePath, renderChild);
     }
 
     const watcherItem = (() => {
@@ -252,6 +257,7 @@ export async function codeBlockProcessor(
         el,
         tplData: rawParams,
         sourcePath: ctx.sourcePath,
+        renderChild,
     });
 
     return renderP;
