@@ -2,10 +2,10 @@
 
 const langEn = {
     //command list
-    addHandlebarsTemplate: 'Add Handlebars Template',
+    addHandlebarsTemplate: 'Add Handlebars template',
     defaultTemplate: '```hb\ntpl: template_name\ndata:\n  arg1: value1\n  arg2: value2\n```\n',
-    rebuildPage: 'Rebuild Page',
-    rebuildTemplate: 'Rebuild Template With Imported Params',
+    rebuildPage: 'Rebuild page',
+    rebuildTemplate: 'Rebuild template with imported params',
 
     //codeBlockProcessor
     yamlParseError: 'Yaml parse error',
@@ -16,21 +16,21 @@ const langEn = {
     templateCompileError: 'Template compile error',
 
     //setting page
-    templateFolder: 'Template Folder',
+    templateFolder: 'Template folder',
     templateFolderDesc: 'The folder where templates are stored',
-    templateFolderPlaceholder: 'Abstract Templates Path',
+    templateFolderPlaceholder: 'Abstract templates path',
 
-    constantFolder: 'Constant Folder',
+    constantFolder: 'Constant folder',
     constantFolderDesc: 'The folder where constants are stored',
-    constantFolderPlaceholder: 'Abstract Constants Path',
+    constantFolderPlaceholder: 'Abstract constants path',
 
     invalidImportParamsType: 'importParams is invalid type',
     importParamsResultIsNotObject: 'importParams result is not a object',
     importParamsFileNotFound: 'importParams file not found',
     invalidImportParamsValue: 'importParams value is invalid',
 
-    hbEnv: 'Handlebars Environment',
-    hbEnvDesc: 'JSON Environment variables for handlebars',
+    hbEnv: 'Handlebars environment',
+    hbEnvDesc: 'JSON environment variables for Handlebars',
 }
 
 type LangDef = Record<keyof typeof langEn, string>;
