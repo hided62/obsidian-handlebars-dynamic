@@ -1,4 +1,4 @@
-import { App, Editor, FileView, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, type PluginManifest, Notice, getLanguage } from 'obsidian';
+import { App, Editor, FileView, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, type PluginManifest, Notice, getLanguage, normalizePath } from 'obsidian';
 import { codeBlockProcessor, type TemplateParams } from 'handlebars/codeBlockProcessor';
 import { getHandlebars, resetHbEnv } from 'handlebars/instance';
 import { parseHBFrontmatter } from 'handlebars/util';
@@ -356,7 +356,7 @@ class SettingTab extends PluginSettingTab {
 				.setPlaceholder(i18n('templateFolderPlaceholder'))
 				.setValue(this.plugin.settings.templateFolder)
 				.onChange(async (value) => {
-					this.plugin.settings.templateFolder = value;
+					this.plugin.settings.templateFolder = normalizePath(value);
 					await this.plugin.saveSettings();
 				}));
 
@@ -367,7 +367,7 @@ class SettingTab extends PluginSettingTab {
 				.setPlaceholder(i18n('constantFolderPlaceholder'))
 				.setValue(this.plugin.settings.constantFolder)
 				.onChange(async (value) => {
-					this.plugin.settings.constantFolder = value;
+					this.plugin.settings.constantFolder = normalizePath(value);
 					await this.plugin.saveSettings();
 				}));
 
