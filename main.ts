@@ -349,6 +349,19 @@ export default class ObsidianHandlebars extends Plugin {
 		}
 	}
 
+	rerenderSourcePath(sourcePath: string) {
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const view = leaf.view;
+			if (!(view instanceof MarkdownView)) {
+				return;
+			}
+			if (view.file?.path !== sourcePath) {
+				return;
+			}
+			view.previewMode.rerender(true);
+		});
+	}
+
 	override onunload() {
 		this.watcher.clear();
 	}

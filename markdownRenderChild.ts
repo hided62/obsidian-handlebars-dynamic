@@ -6,6 +6,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 	private sourcePath: string;
 	private tplPath?: string;
 	private targetId?: string;
+	private missingTplPaths: Set<string> = new Set();
 
 	constructor(
 		plugin: ObsidianHandlebars,
@@ -29,7 +30,25 @@ export class HbRenderChild extends MarkdownRenderChild {
 		return this.targetId;
 	}
 
+	addMissingTplPath(tplPath: string) {
+		this.missingTplPaths.add(tplPath);
+	}
+
 	override onload() {
+		if (this.missingTplPaths.size > 0) {
+			this.registerEvent(this.plugin.app.vault.on('create', async (file) => {
+				if (!(file instanceof TFile)) {
+					return;
+				}
+				if (!this.missingTplPaths.has(file.path)) {
+					return;
+				}
+				this.missingTplPaths.delete(file.path);
+				await this.plugin.rerenderDependentTemplates(file.path, new Set());
+				this.plugin.rerenderSourcePath(this.sourcePath);
+			}));
+		}
+
 		if (!this.tplPath || !this.targetId) {
 			return;
 		}

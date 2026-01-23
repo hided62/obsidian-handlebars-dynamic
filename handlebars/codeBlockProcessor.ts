@@ -84,14 +84,44 @@ export function resolveTFile(plugin: ObsidianHandlebars, path: string, isTpl: bo
     return tplFile;
 }
 
+export function resolveCandidatePaths(plugin: ObsidianHandlebars, path: string, isTpl: boolean, sourcePath?: string): string[] {
+    const candidates: string[] = [];
+    let targetPath = path;
+    if (!targetPath.endsWith('.md')) {
+        targetPath += '.md';
+    }
+
+    candidates.push(targetPath);
+
+    if (sourcePath) {
+        const basePath = sourcePath.split('/');
+        basePath.pop();
+        while (basePath.length > 0) {
+            const nextPath = joinPath(basePath.join('/'), targetPath);
+            candidates.push(nextPath);
+            basePath.pop();
+        }
+    }
+
+    const folder = isTpl ? plugin.settings.templateFolder : plugin.settings.constantFolder;
+    candidates.push(joinPath(folder, targetPath));
+
+    return Array.from(new Set(candidates));
+}
+
 export async function codeBlockProcessor(
     this: ObsidianHandlebars,
     source: string,
     el: HTMLElement,
     ctx: MarkdownPostProcessorContext
 ): Promise<void> {
-    const renderError = (markdown: string) => {
+    const renderError = (markdown: string, missingTplPaths?: string[]) => {
         const errorChild = new HbRenderChild(this, el, ctx.sourcePath);
+        if (missingTplPaths) {
+            for (const missingPath of missingTplPaths) {
+                errorChild.addMissingTplPath(missingPath);
+            }
+        }
         ctx.addChild(errorChild);
         return MarkdownRenderer.render(this.app, markdown, el, ctx.sourcePath, errorChild);
     };
@@ -115,19 +145,25 @@ export async function codeBlockProcessor(
     }
 
     const tplPath = params.tpl;
+    const parentEl = el.closest(`[${hbParentTplKey}]`) as HTMLElement | null;
+    const parentTplPath = parentEl?.getAttr?.(hbParentTplKey) ?? parentEl?.getAttribute(hbParentTplKey) ?? null;
     const tplFile = resolveTFile(this, tplPath, true, ctx.sourcePath);
 
     if (!tplFile) {
         console.error('Template file not found', params.tpl);
-        return renderError(failureCalloutBox(i18n('noTplExists'), quoteattr(params.tpl)));
+        const missingTplPaths = resolveCandidatePaths(this, tplPath, true, ctx.sourcePath);
+        if (parentTplPath) {
+            for (const missingPath of missingTplPaths) {
+                this.addTplDependency(parentTplPath, missingPath);
+            }
+        }
+        return renderError(failureCalloutBox(i18n('noTplExists'), quoteattr(params.tpl)), missingTplPaths);
     }
 
     if (!(tplFile instanceof TFile)) {
         return renderError(failureCalloutBox(i18n('invalidTplFileType'), quoteattr(params.tpl)));
     }
 
-    const parentEl = el.closest(`[${hbParentTplKey}]`) as HTMLElement | null;
-    const parentTplPath = parentEl?.getAttr?.(hbParentTplKey) ?? parentEl?.getAttribute(hbParentTplKey) ?? null;
     if (parentTplPath) {
         this.addTplDependency(parentTplPath, tplFile.path);
     }
