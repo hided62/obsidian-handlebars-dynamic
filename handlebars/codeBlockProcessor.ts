@@ -1,5 +1,5 @@
 import { type MarkdownPostProcessorContext, TFile, parseYaml, MarkdownRenderer } from 'obsidian';
-import ObsidianHandlebars, { hbIDKey, type WatcherItem } from 'main';
+import ObsidianHandlebars, { hbIDKey, hbParentTplKey, type WatcherItem } from 'main';
 import { HbRenderChild } from 'markdownRenderChild';
 import { quoteattr } from '../util';
 import { getHandlebars } from './instance';
@@ -126,6 +126,12 @@ export async function codeBlockProcessor(
         return renderError(failureCalloutBox(i18n('invalidTplFileType'), quoteattr(params.tpl)));
     }
 
+    const parentEl = el.closest(`[${hbParentTplKey}]`) as HTMLElement | null;
+    const parentTplPath = parentEl?.getAttr?.(hbParentTplKey) ?? parentEl?.getAttribute(hbParentTplKey) ?? null;
+    if (parentTplPath) {
+        this.addTplDependency(parentTplPath, tplFile.path);
+    }
+
     let randomString = el.getAttr(hbIDKey);
     if (!randomString) {
         randomString = Math.random().toString(36).substring(7);
@@ -233,13 +239,17 @@ export async function codeBlockProcessor(
     }
 
 
+    const wrapWithParentMarker = (markdown: string) => {
+        return `<div ${hbParentTplKey}="${quoteattr(tplFile.path)}">\n${markdown}\n</div>`;
+    };
+
     let renderP: Promise<void>;
     if (errString) {
-        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, renderChild);
+        MarkdownRenderer.render(this.app, wrapWithParentMarker(failureCalloutBox(errString[0], errString[1])), el, ctx.sourcePath, renderChild);
         renderP = Promise.resolve();
     }
     else {
-        renderP = MarkdownRenderer.render(this.app, result, el, ctx.sourcePath, renderChild);
+        renderP = MarkdownRenderer.render(this.app, wrapWithParentMarker(result), el, ctx.sourcePath, renderChild);
     }
 
     const watcherItem = (() => {

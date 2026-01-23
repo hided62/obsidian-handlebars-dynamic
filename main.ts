@@ -35,6 +35,7 @@ export type WatcherTarget = {
 }
 
 export const hbIDKey = 'data-hb-id';
+export const hbParentTplKey = 'data-hb-parent-tpl';
 
 type CacheCtxInfo = {
 	until: number,
@@ -48,6 +49,8 @@ export default class ObsidianHandlebars extends Plugin {
 	watcher: Map<string, WatcherItem> = new Map();
 
 	docCache: Map<string, CacheCtxInfo> = new Map();
+	tplDeps: Map<string, Set<string>> = new Map();
+	tplDependents: Map<string, Set<string>> = new Map();
 
 	constructor(app: App, manifest: PluginManifest) {
 		super(app, manifest);
@@ -158,7 +161,13 @@ export default class ObsidianHandlebars extends Plugin {
 
 	}
 
-	async onTplChanged(tplPath: string, item?: WatcherItem, force?: boolean, targetId?: string) {
+	async onTplChanged(tplPath: string, item?: WatcherItem, force?: boolean, targetId?: string, visited?: Set<string>) {
+		const visitedTpls = visited ?? new Set<string>();
+		if (visitedTpls.has(tplPath)) {
+			return;
+		}
+		visitedTpls.add(tplPath);
+
 		const watcherItem = item ?? this.watcher.get(tplPath);
 		if (!watcherItem) {
 			return;
@@ -217,6 +226,11 @@ export default class ObsidianHandlebars extends Plugin {
 			})()
 			: Array.from(watcherItem.targets.entries());
 
+		const shouldResetDeps = !targetId;
+		if (shouldResetDeps) {
+			this.clearTplDependencies(tplPath);
+		}
+
 		if (targetEntries.length === 0) {
 			return;
 		}
@@ -255,6 +269,57 @@ export default class ObsidianHandlebars extends Plugin {
 			waiters.push(MarkdownRenderer.render(this.app, markdown, target.el, target.sourcePath, target.renderChild));
 		}
 		await Promise.all(waiters);
+		await this.rerenderDependentTemplates(tplPath, visitedTpls);
+	}
+
+	addTplDependency(parentTplPath: string, childTplPath: string) {
+		if (!parentTplPath || !childTplPath) {
+			return;
+		}
+
+		let deps = this.tplDeps.get(parentTplPath);
+		if (!deps) {
+			deps = new Set();
+			this.tplDeps.set(parentTplPath, deps);
+		}
+		deps.add(childTplPath);
+
+		let parents = this.tplDependents.get(childTplPath);
+		if (!parents) {
+			parents = new Set();
+			this.tplDependents.set(childTplPath, parents);
+		}
+		parents.add(parentTplPath);
+	}
+
+	clearTplDependencies(parentTplPath: string) {
+		const deps = this.tplDeps.get(parentTplPath);
+		if (!deps) {
+			return;
+		}
+
+		for (const childTplPath of deps) {
+			const parents = this.tplDependents.get(childTplPath);
+			if (!parents) {
+				continue;
+			}
+			parents.delete(parentTplPath);
+			if (parents.size === 0) {
+				this.tplDependents.delete(childTplPath);
+			}
+		}
+		this.tplDeps.delete(parentTplPath);
+	}
+
+	async rerenderDependentTemplates(tplPath: string, visited: Set<string>) {
+		const dependents = this.tplDependents.get(tplPath);
+		if (!dependents || dependents.size === 0) {
+			return;
+		}
+
+		for (const dependentTpl of dependents) {
+			await this.onTplChanged(dependentTpl, undefined, true, undefined, visited);
+		}
 	}
 
 	override onunload() {
