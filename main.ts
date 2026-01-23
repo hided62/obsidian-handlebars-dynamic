@@ -1,4 +1,4 @@
-import { App, Editor, FileView, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, type PluginManifest, Notice } from 'obsidian';
+import { App, Editor, FileView, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, type PluginManifest, Notice, getLanguage } from 'obsidian';
 import { codeBlockProcessor, type TemplateParams } from 'handlebars/codeBlockProcessor';
 import { getHandlebars, resetHbEnv } from 'handlebars/instance';
 import { parseHBFrontmatter } from 'handlebars/util';
@@ -49,7 +49,7 @@ export default class ObsidianHandlebars extends Plugin {
 
 	constructor(app: App, manifest: PluginManifest) {
 		super(app, manifest);
-		const lang = window.localStorage.getItem('language');
+		const lang = getLanguage();
 		setLanguage(lang as keyof typeof langMap);
 	}
 
