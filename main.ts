@@ -119,7 +119,7 @@ export default class ObsidianHandlebars extends Plugin {
 					return true;
 				}
 
-				view.previewMode.rerender(true);
+				this.rerenderMarkdownView(view);
 				this.app.workspace.updateOptions();
 
 				new Notice(i18n('rebuildPage'));
@@ -144,7 +144,7 @@ export default class ObsidianHandlebars extends Plugin {
 						await this.onTplChanged(key, value, true);
 					}
 
-					view.previewMode.rerender(true);
+					this.rerenderMarkdownView(view);
 					this.app.workspace.updateOptions();
 				})();
 				return true;
@@ -358,8 +358,15 @@ export default class ObsidianHandlebars extends Plugin {
 			if (view.file?.path !== sourcePath) {
 				return;
 			}
-			view.previewMode.rerender(true);
+			this.rerenderMarkdownView(view);
 		});
+	}
+
+	rerenderMarkdownView(view: MarkdownView) {
+		view.previewMode.rerender(true);
+		if (view.getMode() === 'source') {
+			view.currentMode.set(view.getViewData(), false);
+		}
 	}
 
 	override onunload() {
