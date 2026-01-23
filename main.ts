@@ -104,33 +104,45 @@ export default class ObsidianHandlebars extends Plugin {
 		this.addCommand({
 			id: 'rebuild-page',
 			name: i18n('rebuildPage'),
-			callback: () => {
+			checkCallback: (checking) => {
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (!view) {
-					return;
+					return false;
+				}
+
+				if (checking) {
+					return true;
 				}
 
 				view.previewMode.rerender(true);
 				this.app.workspace.updateOptions();
 
 				new Notice(i18n('rebuildPage'));
-			}
+				return true;
+			},
 		});
 		this.addCommand({
 			id: 'rebuild-template',
 			name: i18n('rebuildTemplate'),
-			callback: async () => {
-				for (const [key, value] of this.watcher.entries()) {
-					await this.onTplChanged(key, value, true);
-				}
-
+			checkCallback: (checking) => {
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (!view) {
-					return;
+					return false;
 				}
 
-				view.previewMode.rerender(true);
-				this.app.workspace.updateOptions();
+				if (checking) {
+					return true;
+				}
+
+				void (async () => {
+					for (const [key, value] of this.watcher.entries()) {
+						await this.onTplChanged(key, value, true);
+					}
+
+					view.previewMode.rerender(true);
+					this.app.workspace.updateOptions();
+				})();
+				return true;
 			}
 		});
 
