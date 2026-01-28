@@ -74,15 +74,17 @@ export const langMap = {
     en: langEn,
 } satisfies Record<string, LangDef>;
 
+import { warn } from 'logger';
+
 let currentLang: keyof typeof langMap = 'en';
 export function setLanguage(lang: string) {
     if (lang in langMap) {
         currentLang = lang as keyof typeof langMap;
     }
-    else {
-        currentLang = 'en';
-        console.warn('Unsupported language:', lang);
-    }
+	else {
+		currentLang = 'en';
+		warn('Unsupported language:', lang);
+	}
 }
 
 

@@ -10,6 +10,7 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+const debug = process.env.DEBUG === "1";
 
 const context = await esbuild.context({
 	banner: {
@@ -17,6 +18,9 @@ const context = await esbuild.context({
 	},
 	entryPoints: ["main.ts"],
 	bundle: true,
+	define: {
+		__DEBUG__: debug ? "true" : "false",
+	},
 	external: [
 		"obsidian",
 		"electron",

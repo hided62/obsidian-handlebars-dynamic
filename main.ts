@@ -5,6 +5,7 @@ import { parseHBFrontmatter } from 'handlebars/util';
 import { importParams, type importParamType } from 'handlebars/importParams';
 import { i18n, langMap, setLanguage } from 'i18n';
 import type { HbRenderChild } from 'markdownRenderChild';
+import { debugLog } from 'logger';
 
 const handlebars = getHandlebars();
 
@@ -84,6 +85,7 @@ export default class ObsidianHandlebars extends Plugin {
 					newEnv[key] = value;
 					resetHbEnv(newEnv);
 				}
+				debugLog('hb-env:reset', { keys: Object.keys(newEnv) });
 			}
 			catch (e) {
 				console.error('Invalid hbEnv', e);
@@ -92,6 +94,7 @@ export default class ObsidianHandlebars extends Plugin {
 	}
 
 	override async onload() {
+		debugLog('plugin:onload');
 		await this.loadSettings();
 		this.watcher = new Map();
 		this.resetHbEnv();
@@ -102,6 +105,7 @@ export default class ObsidianHandlebars extends Plugin {
 			id: 'add-template',
 			name: i18n('addHandlebarsTemplate'),
 			editorCallback: (editor: Editor, view) => {
+				debugLog('command:add-template', view?.file?.path);
 				editor.replaceSelection(i18n('defaultTemplate'));
 			}
 		});
@@ -119,6 +123,7 @@ export default class ObsidianHandlebars extends Plugin {
 					return true;
 				}
 
+				debugLog('command:rebuild-page', view.file?.path);
 				this.rerenderMarkdownView(view);
 				this.app.workspace.updateOptions();
 
@@ -139,6 +144,7 @@ export default class ObsidianHandlebars extends Plugin {
 					return true;
 				}
 
+				debugLog('command:rebuild-template', { file: view.file?.path, watchers: this.watcher.size });
 				void (async () => {
 					for (const [key, value] of this.watcher.entries()) {
 						await this.onTplChanged(key, value, true);
@@ -194,6 +200,7 @@ export default class ObsidianHandlebars extends Plugin {
 		const frontmatter = watcherItem.frontmatter;
 
 		if (frontmatter.importParams && shouldRefresh) {
+			debugLog('template:import-params', { tplPath });
 			try {
 				const cache = new Map<string, Promise<Record<string, unknown>>>();
 				const moreParams = await importParams(frontmatter.importParams as importParamType, this, cache);
@@ -203,6 +210,7 @@ export default class ObsidianHandlebars extends Plugin {
 				for (const [key, value] of Object.entries(moreParams)) {
 					frontmatter[key] = value;
 				}
+				debugLog('template:import-params:done', { tplPath, keys: Object.keys(moreParams) });
 			}
 			catch (e) {
 				console.error('Import params error', e);
@@ -236,10 +244,19 @@ export default class ObsidianHandlebars extends Plugin {
 			return;
 		}
 
+		debugLog('template:change', {
+			tplPath,
+			force,
+			targetId,
+			refreshed: shouldRefresh,
+			targets: targetEntries.length,
+		});
+
 		for (const [key, target] of targetEntries) {
 			const hbID = target.el.getAttr(hbIDKey);
 			if (hbID != key) {
 				watcherItem.targets.delete(key);
+				debugLog('template:target-mismatch', { tplPath, key, hbID });
 				return;
 			}
 
@@ -270,6 +287,7 @@ export default class ObsidianHandlebars extends Plugin {
 			waiters.push(MarkdownRenderer.render(this.app, markdown, target.el, target.sourcePath, target.renderChild));
 		}
 		await Promise.all(waiters);
+		debugLog('template:rendered', { tplPath, count: targetEntries.length });
 		await this.rerenderDependentTemplates(tplPath, visitedTpls);
 	}
 
@@ -344,6 +362,7 @@ export default class ObsidianHandlebars extends Plugin {
 			return;
 		}
 
+		debugLog('template:rerender-dependents', { tplPath, count: dependents.size });
 		for (const dependentTpl of dependents) {
 			await this.onTplChanged(dependentTpl, undefined, true, undefined, visited);
 		}
@@ -370,6 +389,7 @@ export default class ObsidianHandlebars extends Plugin {
 	}
 
 	override onunload() {
+		debugLog('plugin:onunload');
 		this.watcher.clear();
 	}
 

@@ -1,5 +1,6 @@
 import { MarkdownRenderChild, TAbstractFile, TFile } from 'obsidian';
 import type ObsidianHandlebars from 'main';
+import { debugLog } from 'logger';
 
 export class HbRenderChild extends MarkdownRenderChild {
 	private plugin: ObsidianHandlebars;
@@ -44,6 +45,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 					return;
 				}
 				this.missingTplPaths.delete(file.path);
+				debugLog('render-child:missing-template-created', file.path);
 				await this.plugin.rerenderDependentTemplates(file.path, new Set());
 				this.plugin.rerenderSourcePath(this.sourcePath);
 			}));
@@ -67,6 +69,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 				return;
 			}
 
+			debugLog('render-child:template-change', { tplPath: this.tplPath, targetId: this.targetId });
 			await this.plugin.onTplChanged(this.tplPath, tplWatcher, false, this.targetId);
 		};
 
@@ -87,7 +90,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 		tplWatcher.targets.delete(this.targetId);
 		if (tplWatcher.targets.size === 0) {
 			this.plugin.watcher.delete(this.tplPath);
-				this.plugin.removeTplTracking(this.tplPath);
+			this.plugin.removeTplTracking(this.tplPath);
 		}
 	}
 }
