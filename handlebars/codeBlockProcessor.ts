@@ -1,4 +1,4 @@
-import { type MarkdownPostProcessorContext, TFile, parseYaml, MarkdownRenderer } from 'obsidian';
+import { type MarkdownPostProcessorContext, TFile, parseYaml, MarkdownRenderer, MarkdownRenderChild } from 'obsidian';
 import ObsidianHandlebars, { hbIDKey, hbParentTplKey, type WatcherItem } from 'main';
 import { HbRenderChild } from 'markdownRenderChild';
 import { quoteattr } from '../util';
@@ -177,6 +177,7 @@ export async function codeBlockProcessor(
 
     const renderChild = new HbRenderChild(this, el, ctx.sourcePath, tplFile.path, randomString);
     ctx.addChild(renderChild);
+    const renderContext = renderChild.addChild(new MarkdownRenderChild(el));
     debugLog('codeblock:render', { tplPath: tplFile.path, sourcePath: ctx.sourcePath, parentTplPath, targetId: randomString });
 
     let docCache = this.docCache.get(ctx.sourcePath);
@@ -282,11 +283,11 @@ export async function codeBlockProcessor(
 
     let renderP: Promise<void>;
     if (errString) {
-        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, renderChild);
+        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, renderContext);
         renderP = Promise.resolve();
     }
     else {
-        renderP = MarkdownRenderer.render(this.app, result, el, ctx.sourcePath, renderChild);
+        renderP = MarkdownRenderer.render(this.app, result, el, ctx.sourcePath, renderContext);
     }
 
     const watcherItem = (() => {
@@ -305,6 +306,7 @@ export async function codeBlockProcessor(
         tplData: rawParams,
         sourcePath: ctx.sourcePath,
         renderChild,
+        renderContext,
     });
 
     return renderP;

@@ -1,4 +1,4 @@
-import { AbstractInputSuggest, App, Editor, MarkdownRenderer, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, TFolder, type PluginManifest, Notice, getLanguage, normalizePath } from 'obsidian';
+import { AbstractInputSuggest, App, Editor, MarkdownRenderer, MarkdownRenderChild, MarkdownView, Plugin, PluginSettingTab, Setting, TFile, TFolder, type PluginManifest, Notice, getLanguage, normalizePath } from 'obsidian';
 import { codeBlockProcessor, type TemplateParams } from 'handlebars/codeBlockProcessor';
 import { getHandlebars, resetHbEnv } from 'handlebars/instance';
 import { parseHBFrontmatter } from 'handlebars/util';
@@ -37,6 +37,7 @@ export type WatcherTarget = {
 	el: HTMLElement;
 	sourcePath: string;
 	renderChild: HbRenderChild;
+	renderContext?: MarkdownRenderChild;
 }
 
 export const hbIDKey = 'data-hb-id';
@@ -290,8 +291,14 @@ export default class ObsidianHandlebars extends Plugin {
 				markdown = `${fenceText}\n${markdown}\n${fenceText}`;
 			}
 
+			if (target.renderContext) {
+				target.renderChild.removeChild(target.renderContext);
+			}
+			const renderContext = target.renderChild.addChild(new MarkdownRenderChild(target.el));
+			target.renderContext = renderContext;
+
 			target.el.setText('');
-			waiters.push(MarkdownRenderer.render(this.app, markdown, target.el, target.sourcePath, target.renderChild));
+			waiters.push(MarkdownRenderer.render(this.app, markdown, target.el, target.sourcePath, renderContext));
 		}
 		await Promise.all(waiters);
 		debugLog('template:rendered', { tplPath, count: targetEntries.length });
