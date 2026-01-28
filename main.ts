@@ -152,7 +152,7 @@ export default class ObsidianHandlebars extends Plugin {
 				debugLog('command:rebuild-template', { file: view.file?.path, watchers: this.watcher.size });
 				void (async () => {
 					for (const [key, value] of this.watcher.entries()) {
-						await this.onTplChanged(key, value, true);
+						await this.onTplChanged(key, value, true, undefined, undefined, true);
 					}
 
 					this.rerenderMarkdownView(view);
@@ -172,7 +172,7 @@ export default class ObsidianHandlebars extends Plugin {
 
 	}
 
-	async onTplChanged(tplPath: string, item?: WatcherItem, force?: boolean, targetId?: string, visited?: Map<string, number>) {
+	async onTplChanged(tplPath: string, item?: WatcherItem, force?: boolean, targetId?: string, visited?: Map<string, number>, skipDependents?: boolean) {
 		const visitedTpls = visited ?? new Map<string, number>();
 		const limit = this.getPropagationLimit();
 		const visitCount = visitedTpls.get(tplPath) ?? 0;
@@ -302,7 +302,9 @@ export default class ObsidianHandlebars extends Plugin {
 		}
 		await Promise.all(waiters);
 		debugLog('template:rendered', { tplPath, count: targetEntries.length });
-		await this.rerenderDependentTemplates(tplPath, visitedTpls);
+		if (!skipDependents) {
+			await this.rerenderDependentTemplates(tplPath, visitedTpls);
+		}
 	}
 
 	removeTplTracking(tplPath: string) {

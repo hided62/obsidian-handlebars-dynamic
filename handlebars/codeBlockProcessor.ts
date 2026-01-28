@@ -146,7 +146,7 @@ export async function codeBlockProcessor(
     }
 
     const tplPath = params.tpl;
-    const parentEl = el.closest(`[${hbParentTplKey}]`) as HTMLElement | null;
+    const parentEl = el.parentElement?.closest(`[${hbParentTplKey}]`) as HTMLElement | null;
     const parentTplPath = parentEl?.getAttr?.(hbParentTplKey) ?? parentEl?.getAttribute(hbParentTplKey) ?? null;
     const tplFile = resolveTFile(this, tplPath, true, ctx.sourcePath);
 
