@@ -6,6 +6,7 @@ import { getHandlebars } from './instance';
 import { failureCalloutBox, parseHBFrontmatter } from './util';
 import { importParams } from './importParams';
 import { i18n } from 'i18n';
+import { debugLog } from 'logger';
 
 const handlebars = getHandlebars();
 
@@ -176,6 +177,7 @@ export async function codeBlockProcessor(
 
     const renderChild = new HbRenderChild(this, el, ctx.sourcePath, tplFile.path, randomString);
     ctx.addChild(renderChild);
+    debugLog('codeblock:render', { tplPath: tplFile.path, sourcePath: ctx.sourcePath, parentTplPath, targetId: randomString });
 
     let docCache = this.docCache.get(ctx.sourcePath);
     if (docCache && docCache.until < Date.now()) {
@@ -275,17 +277,16 @@ export async function codeBlockProcessor(
     }
 
 
-    const wrapWithParentMarker = (markdown: string) => {
-        return `<div ${hbParentTplKey}="${quoteattr(tplFile.path)}">\n${markdown}\n</div>`;
-    };
+    // Mark the container so nested templates can find their parent without blocking Markdown parsing.
+    el.setAttr(hbParentTplKey, tplFile.path);
 
     let renderP: Promise<void>;
     if (errString) {
-        MarkdownRenderer.render(this.app, wrapWithParentMarker(failureCalloutBox(errString[0], errString[1])), el, ctx.sourcePath, renderChild);
+        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, renderChild);
         renderP = Promise.resolve();
     }
     else {
-        renderP = MarkdownRenderer.render(this.app, wrapWithParentMarker(result), el, ctx.sourcePath, renderChild);
+        renderP = MarkdownRenderer.render(this.app, result, el, ctx.sourcePath, renderChild);
     }
 
     const watcherItem = (() => {

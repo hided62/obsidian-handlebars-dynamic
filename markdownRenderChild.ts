@@ -36,6 +36,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 	}
 
 	override onload() {
+		debugLog('render-child:load', { tplPath: this.tplPath, targetId: this.targetId, sourcePath: this.sourcePath });
 		if (this.missingTplPaths.size > 0) {
 			this.registerEvent(this.plugin.app.vault.on('create', async (file) => {
 				if (!(file instanceof TFile)) {
@@ -78,6 +79,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 	}
 
 	override onunload() {
+		debugLog('render-child:unload', { tplPath: this.tplPath, targetId: this.targetId, sourcePath: this.sourcePath });
 		if (!this.tplPath || !this.targetId) {
 			return;
 		}
@@ -88,6 +90,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 		}
 
 		tplWatcher.targets.delete(this.targetId);
+		debugLog('render-child:unload:targets', { tplPath: this.tplPath, size: tplWatcher.targets.size });
 		if (tplWatcher.targets.size === 0) {
 			this.plugin.watcher.delete(this.tplPath);
 			this.plugin.removeTplTracking(this.tplPath);
