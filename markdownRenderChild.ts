@@ -46,7 +46,7 @@ export class HbRenderChild extends MarkdownRenderChild {
 				}
 				this.missingTplPaths.delete(file.path);
 				debugLog('render-child:missing-template-created', file.path);
-				await this.plugin.rerenderDependentTemplates(file.path, new Set());
+				await this.plugin.rerenderDependentTemplates(file.path, new Map());
 				this.plugin.rerenderSourcePath(this.sourcePath);
 			}));
 		}

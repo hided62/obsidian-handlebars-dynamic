@@ -31,6 +31,9 @@ const langEn = {
 
     hbEnv: 'Handlebars environment',
     hbEnvDesc: 'JSON environment variables for Handlebars',
+
+    maxPropagation: 'Max propagation count',
+    maxPropagationDesc: 'How many times to allow propagation per template (prevents infinite loops)',
 }
 
 type LangDef = Record<keyof typeof langEn, string>;
@@ -67,6 +70,9 @@ const langKo = {
 
     hbEnv: '핸들바 환경변수',
     hbEnvDesc: 'JSON 타입으로 지정된 핸들바 환경변수',
+
+    maxPropagation: '최대 전파 횟수',
+    maxPropagationDesc: '템플릿별 전파 허용 횟수(무한 루프 방지)',
 } satisfies LangDef;
 
 export const langMap = {

@@ -13,13 +13,17 @@ interface HandlebarSettings {
 	templateFolder: string;
 	constantFolder: string;
 	hbEnv: string;
+	maxPropagation: number;
 }
 
 const DEFAULT_SETTINGS: HandlebarSettings = {
 	templateFolder: 'Templates',
 	constantFolder: 'Constants',
 	hbEnv: '{}',
+	maxPropagation: 4,
 }
+
+const MIN_TEMPLATE_PROPAGATION = 1;
 
 export type WatcherItem = {
 	targets: Map<string, WatcherTarget>;
@@ -167,12 +171,15 @@ export default class ObsidianHandlebars extends Plugin {
 
 	}
 
-	async onTplChanged(tplPath: string, item?: WatcherItem, force?: boolean, targetId?: string, visited?: Set<string>) {
-		const visitedTpls = visited ?? new Set<string>();
-		if (visitedTpls.has(tplPath)) {
+	async onTplChanged(tplPath: string, item?: WatcherItem, force?: boolean, targetId?: string, visited?: Map<string, number>) {
+		const visitedTpls = visited ?? new Map<string, number>();
+		const limit = this.getPropagationLimit();
+		const visitCount = visitedTpls.get(tplPath) ?? 0;
+		if (visitCount >= limit) {
+			debugLog('template:change-skip:limit', { tplPath, visitCount, limit });
 			return;
 		}
-		visitedTpls.add(tplPath);
+		visitedTpls.set(tplPath, visitCount + 1);
 
 		const watcherItem = item ?? this.watcher.get(tplPath);
 		if (!watcherItem) {
@@ -356,7 +363,7 @@ export default class ObsidianHandlebars extends Plugin {
 		this.tplDependents.delete(tplPath);
 	}
 
-	async rerenderDependentTemplates(tplPath: string, visited: Set<string>) {
+	async rerenderDependentTemplates(tplPath: string, visited: Map<string, number>) {
 		const dependents = this.tplDependents.get(tplPath);
 		if (!dependents || dependents.size === 0) {
 			return;
@@ -400,6 +407,14 @@ export default class ObsidianHandlebars extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 		this.resetHbEnv();
+	}
+
+	private getPropagationLimit(): number {
+		const value = Number(this.settings.maxPropagation);
+		if (!Number.isFinite(value)) {
+			return DEFAULT_SETTINGS.maxPropagation;
+		}
+		return Math.max(MIN_TEMPLATE_PROPAGATION, Math.floor(value));
 	}
 }
 
@@ -501,6 +516,20 @@ class SettingTab extends PluginSettingTab {
 						throw new Error('Invalid JSON: Not object type');
 					}
 					this.plugin.settings.hbEnv = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName(i18n('maxPropagation'))
+			.setDesc(i18n('maxPropagationDesc'))
+			.addText(text => text
+				.setPlaceholder(String(DEFAULT_SETTINGS.maxPropagation))
+				.setValue(String(this.plugin.settings.maxPropagation))
+				.onChange(async (value) => {
+					const parsed = Number.parseInt(value, 10);
+					this.plugin.settings.maxPropagation = Number.isFinite(parsed)
+						? Math.max(MIN_TEMPLATE_PROPAGATION, parsed)
+						: DEFAULT_SETTINGS.maxPropagation;
 					await this.plugin.saveSettings();
 				}));
 	}
