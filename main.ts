@@ -265,7 +265,7 @@ export default class ObsidianHandlebars extends Plugin {
 			if (hbID != key) {
 				watcherItem.targets.delete(key);
 				debugLog('template:target-mismatch', { tplPath, key, hbID });
-				return;
+				continue;
 			}
 
 			const mergedParams: Record<string, unknown> = {};
@@ -302,7 +302,8 @@ export default class ObsidianHandlebars extends Plugin {
 		}
 		await Promise.all(waiters);
 		debugLog('template:rendered', { tplPath, count: targetEntries.length });
-		if (!skipDependents) {
+		const shouldPropagate = !skipDependents && shouldRefresh;
+		if (shouldPropagate) {
 			await this.rerenderDependentTemplates(tplPath, visitedTpls);
 		}
 	}

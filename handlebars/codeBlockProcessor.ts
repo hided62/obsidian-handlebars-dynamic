@@ -291,6 +291,13 @@ export async function codeBlockProcessor(
     }
 
     const watcherItem = (() => {
+        const existing = this.watcher.get(tplFile.path);
+        if (existing) {
+            existing.rawContent = rawContent;
+            existing.content = content;
+            existing.frontmatter = frontmatter;
+            return existing;
+        }
         const item: WatcherItem = {
             rawContent,
             content,
