@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-handlebars-dynamic",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"description": "Handlebars dynamic templating for Obsidian",
 	"main": "main.js",
 	"scripts": {
