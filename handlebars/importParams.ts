@@ -9,7 +9,7 @@ interface importParamMap {
     [key: string]: importParamValue;
 }
 
-interface importParamArray extends Array<importParamValue> { }
+type importParamArray = Array<importParamValue>;
 
 export type importParamType = importParamValue;
 

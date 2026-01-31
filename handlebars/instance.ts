@@ -5,6 +5,7 @@ import { stringify as stringifyYaml } from "yaml";
 let _handlebars: ReturnType<typeof Handlebars.create> | undefined = undefined;
 const Utils = Handlebars.Utils;
 type Func = (...args: unknown[]) => unknown;
+const hbError = (message: string): Error => new Handlebars.Exception(message) as Error;
 
 const hbEnv = new Map<string, string | number>();
 
@@ -53,7 +54,7 @@ export function getHandlebars() {
 		function (
 			this: TemplateDelegate,
 			conditional: unknown,
-			truthyOrOptions: HelperOptions | unknown,
+			truthyOrOptions: unknown,
 			falsy: unknown,
 			mayOptions: HelperOptions
 		) {
@@ -64,7 +65,7 @@ export function getHandlebars() {
 					Utils.isFunction(options.fn) ||
 					Utils.isFunction(options.inverse);
 				if (!hasFunc) {
-					throw new Handlebars.Exception("#if requires blocks");
+					throw hbError("#if requires blocks");
 				}
 
 				if (Utils.isFunction(conditional)) {
@@ -82,14 +83,14 @@ export function getHandlebars() {
 			}
 
 			if (arguments.length == 4) {
-				const options = mayOptions as HelperOptions;
-				let truthy = truthyOrOptions as unknown;
+				const options = mayOptions;
+				let truthy = truthyOrOptions;
 
 				const hasFunc =
 					Utils.isFunction(options.fn) ||
 					Utils.isFunction(options.inverse);
 				if (hasFunc) {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"inline if should not have block"
 					);
 				}
@@ -114,7 +115,7 @@ export function getHandlebars() {
 				}
 			}
 
-			throw new Handlebars.Exception(
+			throw hbError(
 				"#if requires one, inline-if requires three arguments"
 			);
 		}
@@ -124,11 +125,11 @@ export function getHandlebars() {
 		"ifText",
 		function (
 			this: TemplateDelegate,
-			conditional: string | unknown,
+			conditional: unknown,
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"#ifText requires exactly one argument"
 				);
 			}
@@ -143,11 +144,11 @@ export function getHandlebars() {
 		"ifObject",
 		function (
 			this: TemplateDelegate,
-			conditional: string | unknown,
+			conditional: unknown,
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"#ifObject requires exactly one argument"
 				);
 			}
@@ -159,7 +160,6 @@ export function getHandlebars() {
 				return options.fn(this);
 			}
 
-			handlebars?.createFrame;
 			return options.inverse(this);
 		}
 	);
@@ -168,7 +168,7 @@ export function getHandlebars() {
 		"ifEquals",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"#ifEquals requires exactly one argument"
 				);
 			}
@@ -184,7 +184,7 @@ export function getHandlebars() {
 		"asArray",
 		function (this: TemplateDelegate, context, options: HelperOptions) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"asArray requires exactly one argument"
 				);
 			}
@@ -205,13 +205,13 @@ export function getHandlebars() {
 		"asObject",
 		function (this: TemplateDelegate, val, key, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"asObject requires exactly two arguments"
 				);
 			}
 
 			if (typeof key !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"asObject requires key as string"
 				);
 			}
@@ -245,7 +245,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"repeatText requires exactly two arguments"
 				);
 			}
@@ -255,7 +255,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof text !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"repeatText requires text as string"
 				);
 			}
@@ -265,7 +265,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof count !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"repeatText requires count as number"
 				);
 			}
@@ -286,13 +286,13 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"noSpace requires exactly one argument"
 				);
 			}
 
 			if (typeof text !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"noSpace requires text as string"
 				);
 			}
@@ -309,7 +309,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"regexp requires exactly one argument"
 				);
 			}
@@ -319,7 +319,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof pattern !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"regexp requires pattern as string or RegExp"
 				);
 			}
@@ -328,7 +328,7 @@ export function getHandlebars() {
 			if (!flags) {
 				flags = "g";
 			} else if (typeof flags !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"regexp requires flags as string"
 				);
 			} else if (!flags.includes("g")) {
@@ -349,25 +349,25 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 4) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"replace requires exactly three arguments"
 				);
 			}
 
 			if (typeof text !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"replace requires text as string"
 				);
 			}
 
 			if (typeof from !== "string" && !(from instanceof RegExp)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"replace requires from as string or RegExp"
 				);
 			}
 
 			if (typeof to !== "string") {
-				throw new Handlebars.Exception("replace requires to as string");
+				throw hbError("replace requires to as string");
 			}
 
 			return text.replaceAll(from, to);
@@ -382,13 +382,13 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"force_code requires exactly one argument"
 				);
 			}
 
 			if (typeof text !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"force_code requires text as string"
 				);
 			}
@@ -401,7 +401,7 @@ export function getHandlebars() {
 		"eq",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"eq requires exactly two arguments"
 				);
 			}
@@ -422,7 +422,7 @@ export function getHandlebars() {
 		"neq",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"neq requires exactly two arguments"
 				);
 			}
@@ -443,7 +443,7 @@ export function getHandlebars() {
 		"lt",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"lt requires exactly two arguments"
 				);
 			}
@@ -464,7 +464,7 @@ export function getHandlebars() {
 		"gt",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"gt requires exactly two arguments"
 				);
 			}
@@ -485,7 +485,7 @@ export function getHandlebars() {
 		"lte",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"lte requires exactly two arguments"
 				);
 			}
@@ -506,7 +506,7 @@ export function getHandlebars() {
 		"gte",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"gte requires exactly two arguments"
 				);
 			}
@@ -593,7 +593,7 @@ export function getHandlebars() {
 		"deepEq",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"deepEq requires exactly two arguments"
 				);
 			}
@@ -606,7 +606,7 @@ export function getHandlebars() {
 		"deepNeq",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"deepNeq requires exactly two arguments"
 				);
 			}
@@ -619,7 +619,7 @@ export function getHandlebars() {
 		"and",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"and requires at least one argument"
 				);
 			}
@@ -645,7 +645,7 @@ export function getHandlebars() {
 		"or",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"or requires at least one argument"
 				);
 			}
@@ -677,7 +677,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"not requires exactly one argument"
 				);
 			}
@@ -713,7 +713,7 @@ export function getHandlebars() {
 		"concat",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"concat requires at least one argument"
 				);
 			}
@@ -740,7 +740,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"length requires exactly one argument"
 				);
 			}
@@ -772,7 +772,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"keyExists requires exactly two arguments"
 				);
 			}
@@ -817,7 +817,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"contains requires exactly two arguments"
 				);
 			}
@@ -876,7 +876,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"indexOf requires exactly two arguments"
 				);
 			}
@@ -925,7 +925,7 @@ export function getHandlebars() {
 		"merge",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"merge requires exactly two arguments"
 				);
 			}
@@ -938,7 +938,7 @@ export function getHandlebars() {
 			}
 
 			if (first === null || first === undefined) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"merge requires object or array argument[0]"
 				);
 			}
@@ -952,7 +952,7 @@ export function getHandlebars() {
 						: _arg;
 
 					if (!Array.isArray(arg)) {
-						throw new Handlebars.Exception(
+						throw hbError(
 							`merge requires array as argument[${idxMinus1 + 1}]`
 						);
 					}
@@ -963,7 +963,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof first !== "object") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"merge requires object or array argument[0]"
 				);
 			}
@@ -977,19 +977,19 @@ export function getHandlebars() {
 					: _arg;
 
 				if (Array.isArray(arg)) {
-					throw new Handlebars.Exception(
+					throw hbError(
 						`merge requires object as argument[${key}]`
 					);
 				}
 
 				if (arg === null || arg === undefined) {
-					throw new Handlebars.Exception(
+					throw hbError(
 						`merge requires object as argument[${key}]`
 					);
 				}
 
 				if (typeof arg !== "object") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						`merge requires object as argument[${key}]`
 					);
 				}
@@ -1006,7 +1006,7 @@ export function getHandlebars() {
 		"slice",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"slice requires at least two arguments"
 				);
 			}
@@ -1028,19 +1028,19 @@ export function getHandlebars() {
 			}
 
 			if (!Array.isArray(val) && typeof val !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"slice requires array as argument[0]"
 				);
 			}
 
 			if (typeof start !== "number" && start !== undefined) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"slice requires number as argument[1]"
 				);
 			}
 
 			if (typeof end !== "number" && end !== undefined) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"slice requires number as argument[2]"
 				);
 			}
@@ -1053,12 +1053,12 @@ export function getHandlebars() {
 		"range",
 		function (this: TemplateDelegate, ..._args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"range requires at least two arguments"
 				);
 			}
 
-			_args.pop() as unknown as HelperOptions;
+			_args.pop();
 
 			let [start, end, step] = _args as [
 				number | undefined | Func,
@@ -1081,25 +1081,25 @@ export function getHandlebars() {
 			const result: number[] = [];
 
 			if (typeof start !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"range requires number as argument[0]"
 				);
 			}
 
 			if (typeof end !== "number" && end !== undefined) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"range requires number as argument[1]"
 				);
 			}
 
 			if (typeof step !== "number" && step !== undefined) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"range requires number as argument[2]"
 				);
 			}
 
 			if (end === undefined && step !== undefined) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"range requires end as argument[1] when step is given"
 				);
 			}
@@ -1114,7 +1114,7 @@ export function getHandlebars() {
 			}
 
 			if (step === 0) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"range requires step as non-zero number"
 				);
 			}
@@ -1141,7 +1141,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"isString requires exactly one argument"
 				);
 			}
@@ -1162,7 +1162,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"isText requires exactly one argument"
 				);
 			}
@@ -1183,7 +1183,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"isNumber requires exactly one argument"
 				);
 			}
@@ -1204,7 +1204,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"isArray requires exactly one argument"
 				);
 			}
@@ -1225,7 +1225,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"isObject requires exactly one argument"
 				);
 			}
@@ -1248,7 +1248,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"isEmpty requires exactly one argument"
 				);
 			}
@@ -1281,7 +1281,7 @@ export function getHandlebars() {
 		"add",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"add requires at least one argument"
 				);
 			}
@@ -1290,16 +1290,17 @@ export function getHandlebars() {
 
 			let result = 0;
 			for (const arg of args) {
-				if (Utils.isFunction(arg)) {
-					result += (arg as Func).call(this) as number;
+				let value = arg;
+				if (Utils.isFunction(value)) {
+					value = (value as Func).call(this);
 				}
 
-				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+				if (typeof value !== "number") {
+					throw hbError(
 						"add requires number as argument"
 					);
 				}
-				result += arg as number;
+				result += value;
 			}
 			return result;
 		}
@@ -1309,7 +1310,7 @@ export function getHandlebars() {
 		"sub",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"sub requires at least two arguments"
 				);
 			}
@@ -1321,7 +1322,7 @@ export function getHandlebars() {
 				first = (first as Func).call(this);
 			}
 			if (typeof first !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"sub requires number as argument[0]"
 				);
 			}
@@ -1329,15 +1330,16 @@ export function getHandlebars() {
 			let result = first;
 
 			for (const [idxMinus1, arg] of args.entries()) {
-				if (Utils.isFunction(arg)) {
-					first = (arg as Func).call(this);
+				let value = arg;
+				if (Utils.isFunction(value)) {
+					value = (value as Func).call(this);
 				}
-				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+				if (typeof value !== "number") {
+					throw hbError(
 						`sub requires number as argument[${idxMinus1 + 1}]`
 					);
 				}
-				result -= arg as number;
+				result -= value;
 			}
 
 			return result;
@@ -1348,7 +1350,7 @@ export function getHandlebars() {
 		"mul",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"mul requires at least one argument"
 				);
 			}
@@ -1357,16 +1359,17 @@ export function getHandlebars() {
 
 			let result = 1;
 			for (const [idx, arg] of args.entries()) {
-				if (Utils.isFunction(arg)) {
-					result *= (arg as Func).call(this) as number;
+				let value = arg;
+				if (Utils.isFunction(value)) {
+					value = (value as Func).call(this);
 				}
 
-				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+				if (typeof value !== "number") {
+					throw hbError(
 						`mul requires number as argument[${idx}]`
 					);
 				}
-				result *= arg as number;
+				result *= value;
 			}
 			return result;
 		}
@@ -1376,7 +1379,7 @@ export function getHandlebars() {
 		"div",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"div requires at least two arguments"
 				);
 			}
@@ -1388,7 +1391,7 @@ export function getHandlebars() {
 				first = (first as Func).call(this);
 			}
 			if (typeof first !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"div requires number as argument[0]"
 				);
 			}
@@ -1400,7 +1403,7 @@ export function getHandlebars() {
 					first = (arg as Func).call(this);
 				}
 				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						`div requires number as argument[${idxMinus1 + 1}]`
 					);
 				}
@@ -1415,7 +1418,7 @@ export function getHandlebars() {
 		"divInt",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"divInt requires at least two arguments"
 				);
 			}
@@ -1427,7 +1430,7 @@ export function getHandlebars() {
 				first = (first as Func).call(this);
 			}
 			if (typeof first !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"divInt requires number as argument[0]"
 				);
 			}
@@ -1439,7 +1442,7 @@ export function getHandlebars() {
 					first = (arg as Func).call(this);
 				}
 				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						`divInt requires number as argument[${idxMinus1 + 1}]`
 					);
 				}
@@ -1454,7 +1457,7 @@ export function getHandlebars() {
 		"mod",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"mod requires exactly two arguments"
 				);
 			}
@@ -1468,13 +1471,13 @@ export function getHandlebars() {
 			}
 
 			if (typeof a !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"mod requires number as argument[0]"
 				);
 			}
 
 			if (typeof b !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"mod requires number as argument[1]"
 				);
 			}
@@ -1487,7 +1490,7 @@ export function getHandlebars() {
 		"avg",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"avg requires at least one argument"
 				);
 			}
@@ -1496,16 +1499,17 @@ export function getHandlebars() {
 
 			let result = 0;
 			for (const arg of args) {
-				if (Utils.isFunction(arg)) {
-					result += (arg as Func).call(this) as number;
+				let value = arg;
+				if (Utils.isFunction(value)) {
+					value = (value as Func).call(this);
 				}
 
-				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+				if (typeof value !== "number") {
+					throw hbError(
 						"avg requires number as argument"
 					);
 				}
-				result += arg as number;
+				result += value;
 			}
 			return result / args.length;
 		}
@@ -1515,7 +1519,7 @@ export function getHandlebars() {
 		"max",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"max requires at least one argument"
 				);
 			}
@@ -1524,19 +1528,17 @@ export function getHandlebars() {
 
 			let result = -Infinity;
 			for (const arg of args) {
-				if (Utils.isFunction(arg)) {
-					result = Math.max(
-						result,
-						(arg as Func).call(this) as number
-					);
+				let value = arg;
+				if (Utils.isFunction(value)) {
+					value = (value as Func).call(this);
 				}
 
-				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+				if (typeof value !== "number") {
+					throw hbError(
 						"max requires number as argument"
 					);
 				}
-				result = Math.max(result, arg as number);
+				result = Math.max(result, value);
 			}
 			return result;
 		}
@@ -1546,7 +1548,7 @@ export function getHandlebars() {
 		"min",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"min requires at least one argument"
 				);
 			}
@@ -1555,19 +1557,17 @@ export function getHandlebars() {
 
 			let result = Infinity;
 			for (const arg of args) {
-				if (Utils.isFunction(arg)) {
-					result = Math.min(
-						result,
-						(arg as Func).call(this) as number
-					);
+				let value = arg;
+				if (Utils.isFunction(value)) {
+					value = (value as Func).call(this);
 				}
 
-				if (typeof arg !== "number") {
-					throw new Handlebars.Exception(
+				if (typeof value !== "number") {
+					throw hbError(
 						"min requires number as argument"
 					);
 				}
-				result = Math.min(result, arg as number);
+				result = Math.min(result, value);
 			}
 			return result;
 		}
@@ -1577,7 +1577,7 @@ export function getHandlebars() {
 		"pow",
 		function (this: TemplateDelegate, a, b, options: HelperOptions) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"pow requires exactly two arguments"
 				);
 			}
@@ -1591,13 +1591,13 @@ export function getHandlebars() {
 			}
 
 			if (typeof a !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"pow requires number as argument[0]"
 				);
 			}
 
 			if (typeof b !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"pow requires number as argument[1]"
 				);
 			}
@@ -1614,7 +1614,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"floor requires exactly one argument"
 				);
 			}
@@ -1624,7 +1624,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof val !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"floor requires number as argument"
 				);
 			}
@@ -1641,7 +1641,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"ceil requires exactly one argument"
 				);
 			}
@@ -1651,7 +1651,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof val !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"ceil requires number as argument"
 				);
 			}
@@ -1668,7 +1668,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"round requires exactly one argument"
 				);
 			}
@@ -1678,7 +1678,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof val !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"round requires number as argument"
 				);
 			}
@@ -1695,7 +1695,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"abs requires exactly one argument"
 				);
 			}
@@ -1705,7 +1705,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof val !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"abs requires number as argument"
 				);
 			}
@@ -1722,7 +1722,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"toYAML requires exactly one argument"
 				);
 			}
@@ -1766,7 +1766,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"toJSON requires exactly one argument"
 				);
 			}
@@ -1787,7 +1787,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"fromJSON requires exactly one argument"
 				);
 			}
@@ -1804,7 +1804,7 @@ export function getHandlebars() {
 		"split",
 		function (this: TemplateDelegate, val: unknown, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"split requires at least one argument"
 				);
 			}
@@ -1829,7 +1829,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof val !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"split requires string as argument[0]"
 				);
 			}
@@ -1847,13 +1847,13 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"convertMap requires exactly two arguments"
 				);
 			}
 
 			if (Array.isArray(arr) === false) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"convertMap requires array as argument[0]"
 				);
 			}
@@ -1861,7 +1861,7 @@ export function getHandlebars() {
 			const result: Record<string, unknown> = {};
 			for (const [idx, item] of Object.entries(arr)) {
 				if (typeof item !== "object") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"convertMap requires object as argument"
 					);
 				}
@@ -1871,7 +1871,7 @@ export function getHandlebars() {
 					if (typeof key === "string" || typeof key === "number") {
 						result[key] = item;
 					}
-					throw new Handlebars.Exception(
+					throw hbError(
 						`convertMap requires string or number as key(${keyName}) in arr[${idx}]`
 					);
 				}
@@ -1880,12 +1880,11 @@ export function getHandlebars() {
 		}
 	);
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	handlebars.registerHelper(
 		"set",
 		function (this: unknown, _context: unknown, ...args: unknown[]) {
 			if (args.length % 2 != 1) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"set requires odd number of arguments"
 				);
 			}
@@ -1893,13 +1892,13 @@ export function getHandlebars() {
 			const options = args.pop() as HelperOptions;
 
 			if (Utils.isFunction(options.fn)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"set is not allowed to have block"
 				);
 			}
 
 			if (Utils.isFunction(options.inverse)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"set is not allowed to have inverse"
 				);
 			}
@@ -1909,13 +1908,13 @@ export function getHandlebars() {
 			}
 
 			if (_context === null || typeof _context !== "object") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"set requires object as context"
 				);
 			}
 
 			if (Utils.isArray(_context)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"set requires object as context"
 				);
 			}
@@ -1930,7 +1929,7 @@ export function getHandlebars() {
 				const value = args[i + 1];
 
 				if (typeof key !== "string") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"set requires string as key"
 					);
 				}
@@ -1945,7 +1944,7 @@ export function getHandlebars() {
 
 			for (const [key, _value] of Object.entries(options.hash)) {
 				if (typeof key !== "string") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"set requires string as key"
 					);
 				}
@@ -1955,7 +1954,7 @@ export function getHandlebars() {
 					: _value;
 
 				if (Utils.isFunction(context[key])) {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"set requires key not to be function"
 					);
 				}
@@ -1971,7 +1970,7 @@ export function getHandlebars() {
 		"push",
 		function (this: TemplateDelegate, arr: unknown, ...args: unknown[]) {
 			if (arguments.length < 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"push requires at least one argument"
 				);
 			}
@@ -1983,7 +1982,7 @@ export function getHandlebars() {
 			}
 
 			if (!Array.isArray(arr)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"push requires array as argument[0]"
 				);
 			}
@@ -2008,7 +2007,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"pop requires exactly one argument"
 				);
 			}
@@ -2018,7 +2017,7 @@ export function getHandlebars() {
 			}
 
 			if (!Array.isArray(arr)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"pop requires array as argument[0]"
 				);
 			}
@@ -2042,7 +2041,7 @@ export function getHandlebars() {
 		"makeObject",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (args.length % 2 != 1) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"makeObject requires even number of arguments"
 				);
 			}
@@ -2050,13 +2049,13 @@ export function getHandlebars() {
 			const options = args.pop() as HelperOptions;
 
 			if (Utils.isFunction(options.fn)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"makeObject is not allowed to have block"
 				);
 			}
 
 			if (Utils.isFunction(options.inverse)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"makeObject is not allowed to have inverse"
 				);
 			}
@@ -2068,7 +2067,7 @@ export function getHandlebars() {
 				const value = args[i + 1];
 
 				if (typeof key !== "string") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"makeObject requires string as key"
 					);
 				}
@@ -2083,7 +2082,7 @@ export function getHandlebars() {
 
 			for (const [key, _value] of Object.entries(options.hash)) {
 				if (typeof key !== "string") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"makeObject requires string as key"
 					);
 				}
@@ -2103,7 +2102,7 @@ export function getHandlebars() {
 		"makeArray",
 		function (this: TemplateDelegate, ...args: unknown[]) {
 			if (arguments.length < 1) {
-				throw new Handlebars.Exception("something wrong");
+				throw hbError("something wrong");
 			}
 
 			args.pop() as HelperOptions;
@@ -2126,7 +2125,7 @@ export function getHandlebars() {
 		"ignore",
 		function (this: TemplateDelegate, ..._args: unknown[]) {
 			if (arguments.length < 1) {
-				throw new Handlebars.Exception("something wrong");
+				throw hbError("something wrong");
 			}
 
 			_args.pop() as HelperOptions;
@@ -2149,7 +2148,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"numberFormat requires exactly one argument"
 				);
 			}
@@ -2159,7 +2158,7 @@ export function getHandlebars() {
 			}
 
 			if (typeof val !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"numberFormat requires number as argument"
 				);
 			}
@@ -2188,7 +2187,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"join requires exactly two arguments"
 				);
 			}
@@ -2198,13 +2197,13 @@ export function getHandlebars() {
 			}
 
 			if (!Array.isArray(arr)) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"join requires array as argument[0]"
 				);
 			}
 
 			if (typeof separator !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"join requires string as argument[1]"
 				);
 			}
@@ -2222,7 +2221,7 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 3) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"del requires exactly two arguments"
 				);
 			}
@@ -2237,7 +2236,7 @@ export function getHandlebars() {
 
 			if (Array.isArray(obj)) {
 				if (typeof key !== "number") {
-					throw new Handlebars.Exception(
+					throw hbError(
 						"del requires number as key for array"
 					);
 				}
@@ -2246,13 +2245,13 @@ export function getHandlebars() {
 			}
 
 			if (obj === null || typeof obj !== "object") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"del requires object as argument[0]"
 				);
 			}
 
 			if (typeof key !== "string" && typeof key !== "number") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"del requires string or number as key for object"
 				);
 			}
@@ -2265,13 +2264,13 @@ export function getHandlebars() {
 		"getEnv",
 		function (this: TemplateDelegate, key: string, options: HelperOptions) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"getEnv requires exactly one argument"
 				);
 			}
 
 			if (typeof key !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"getEnv requires string as argument"
 				);
 			}
@@ -2288,11 +2287,11 @@ export function getHandlebars() {
 			options: HelperOptions
 		) {
 			if (arguments.length != 2) {
-				throw new Handlebars.Exception("purifyName requires one");
+				throw hbError("purifyName requires one");
 			}
 
 			if (typeof str !== "string") {
-				throw new Handlebars.Exception(
+				throw hbError(
 					"noSpace requires text as string"
 				);
 			}

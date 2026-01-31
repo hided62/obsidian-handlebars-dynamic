@@ -32,7 +32,7 @@ export function parseFrontmatter(text: string): { frontmatter: tplFrontmatter, c
             content,
         };
     }
-    catch(e){
+    catch {
         return {
             frontmatter: {},
             content: text,

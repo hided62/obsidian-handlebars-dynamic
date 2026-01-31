@@ -84,7 +84,8 @@ export default class ObsidianHandlebars extends Plugin {
 						value = _value;
 					}
 					else {
-						throw new Error(`Invalid hbEnvKeyValue[${key}]: ${_value}`);
+						const displayValue = JSON.stringify(_value);
+						throw new Error(`Invalid hbEnvKeyValue[${key}]: ${displayValue}`);
 					}
 
 					newEnv[key] = value;
@@ -280,7 +281,7 @@ export default class ObsidianHandlebars extends Plugin {
 
 			let markdown = tpl(mergedParams);
 
-			if (frontmatter.prefix) {
+			if (typeof frontmatter.prefix === 'string') {
 				const prefix = frontmatter.prefix;
 				markdown = markdown.split('\n').map(text => prefix + text).join('\n');
 			}

@@ -146,8 +146,10 @@ export async function codeBlockProcessor(
     }
 
     const tplPath = params.tpl;
-    const parentEl = el.parentElement?.closest(`[${hbParentTplKey}]`) as HTMLElement | null;
-    const parentTplPath = parentEl?.getAttr?.(hbParentTplKey) ?? parentEl?.getAttribute(hbParentTplKey) ?? null;
+    const parentEl = el.parentElement?.closest(`[${hbParentTplKey}]`);
+    const parentTplPath = parentEl instanceof HTMLElement
+        ? parentEl.getAttr?.(hbParentTplKey) ?? parentEl.getAttribute(hbParentTplKey)
+        : null;
     const tplFile = resolveTFile(this, tplPath, true, ctx.sourcePath);
 
     if (!tplFile) {
@@ -196,13 +198,14 @@ export async function codeBlockProcessor(
         this.docCache.set(ctx.sourcePath, docCache);
     }
 
+    const cache = docCache;
     const rawContent = await (async () => {
-        const cachedResult = docCache!.tplCache.get(tplFile.path);
+        const cachedResult = cache.tplCache.get(tplFile.path);
         if (cachedResult) {
             return cachedResult;
         }
         const waiter = this.app.vault.cachedRead(tplFile);
-        docCache!.tplCache.set(tplFile.path, waiter);
+        cache.tplCache.set(tplFile.path, waiter);
         return await waiter;
     })();
 
@@ -223,10 +226,10 @@ export async function codeBlockProcessor(
         catch (e) {
             console.error('Import params error', e);
             if (e instanceof Error) {
-                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(e.message)), el, ctx.sourcePath, renderChild);
+                await MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(e.message)), el, ctx.sourcePath, renderChild);
             }
             else {
-                MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(String(e))), el, ctx.sourcePath, renderChild);
+                await MarkdownRenderer.render(this.app, failureCalloutBox(i18n('invalidImportParamsValue'), quoteattr(String(e))), el, ctx.sourcePath, renderChild);
             }
             return;
         }
@@ -259,7 +262,7 @@ export async function codeBlockProcessor(
         try {
             result = handlebars.compile(content)(mergedParams);
 
-            if (frontmatter.prefix) {
+            if (typeof frontmatter.prefix === 'string') {
                 const prefix = frontmatter.prefix;
                 result = result.split('\n').map(text => prefix + text).join('\n');
             }
@@ -283,8 +286,7 @@ export async function codeBlockProcessor(
 
     let renderP: Promise<void>;
     if (errString) {
-        MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, renderContext);
-        renderP = Promise.resolve();
+        renderP = MarkdownRenderer.render(this.app, failureCalloutBox(errString[0], errString[1]), el, ctx.sourcePath, renderContext);
     }
     else {
         renderP = MarkdownRenderer.render(this.app, result, el, ctx.sourcePath, renderContext);
